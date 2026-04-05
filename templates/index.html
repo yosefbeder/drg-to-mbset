@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRG to MBSET - Premium Converter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0c0e12;
+            --card-bg: rgba(23, 27, 34, 0.7);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --accent-color: #4f46e5;
+            --accent-glow: rgba(79, 70, 229, 0.4);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --glass-blur: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(79, 70, 229, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(79, 70, 229, 0.1) 0%, transparent 40%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            z-index: 10;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .converter-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .converter-card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .input-group {
+            margin-bottom: 2rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            color: #e2e8f0;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.9rem;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        textarea:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+        }
+
+        .file-dropzone {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .file-dropzone:hover, .file-dropzone.dragover {
+            border-color: var(--accent-color);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .file-dropzone p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .file-dropzone b {
+            color: var(--accent-color);
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 10px 15px -3px var(--accent-glow);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+            box-shadow: 0 20px 25px -5px var(--accent-glow);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 2rem;
+            background: #10b981;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            transform: translateY(100px);
+            transition: transform 0.3s ease;
+            z-index: 100;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+        }
+
+        /* Micro-animations */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="floating">DRG to MBSET</h1>
+            <p>Paste your MCQ JSON data or upload a file to convert it into a perfectly formatted CSV for MBSET.</p>
+        </header>
+
+        <form action="/generate-csv" method="POST" enctype="multipart/form-data" class="converter-card" id="convert-form">
+            <div class="input-group">
+                <label for="json_data">JSON Data</label>
+                <textarea name="json_data" id="json_data" placeholder='{"links": [], "mcqQuizzes": [...] }'></textarea>
+            </div>
+
+            <div class="file-dropzone" id="dropzone">
+                <p>Drag and drop your <b>JSON file</b> here, or click to browse</p>
+                <input type="file" name="file" id="file-input" accept=".json">
+                <div id="file-info" style="margin-top: 0.5rem; color: var(--accent-color); font-weight: 500; display: none;"></div>
+            </div>
+
+            <div id="result-area" style="display: none; margin-bottom: 2rem; animation: slideUp 0.5s ease-out;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <label style="font-weight: 500; color: var(--text-primary); font-size: 0.9rem; text-transform: uppercase;">Converted CSV Result</label>
+                    <button type="button" id="copy-btn" style="background: rgba(79, 70, 229, 0.15); border: 1px solid var(--accent-color); color: var(--accent-color); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 0.4rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 14px; height: 14px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                        </svg>
+                        <span>Copy to Clipboard</span>
+                    </button>
+                </div>
+                <div style="background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem;">
+                    <textarea id="csv-result" readonly style="width: 100%; height: 350px; background: transparent; border: none; font-family: 'Monaco', monospace; font-size: 0.85rem; color: #94a3b8; outline: none; resize: vertical; display: block;"></textarea>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="generate-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                </svg>
+                Generate MBSET CSV
+            </button>
+        </form>
+    </div>
+
+    <div id="toast" class="toast">CSV Copied to Clipboard!</div>
+
+    <style>
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+
+    <script>
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const form = document.getElementById('convert-form');
+        const jsonTextarea = document.getElementById('json_data');
+        const generateBtn = document.getElementById('generate-btn');
+        const toast = document.getElementById('toast');
+        const resultArea = document.getElementById('result-area');
+        const csvResult = document.getElementById('csv-result');
+        const copyBtn = document.getElementById('copy-btn');
+
+        // Drag and drop logic
+        dropzone.addEventListener('click', () => fileInput.click());
+
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                updateFileInfo();
+            }
+        });
+
+        fileInput.addEventListener('change', updateFileInfo);
+
+        function updateFileInfo() {
+            if (fileInput.files.length) {
+                fileInfo.textContent = `Selected: ${fileInput.files[0].name}`;
+                fileInfo.style.display = 'block';
+                jsonTextarea.placeholder = "File selected. Textarea input will be ignored.";
+                jsonTextarea.disabled = true;
+                jsonTextarea.style.opacity = "0.5";
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!fileInput.files.length && !jsonTextarea.value.trim()) {
+                alert('Please provide JSON data or select a file.');
+                return;
+            }
+
+            const formData = new FormData(form);
+            try {
+                generateBtn.disabled = true;
+                generateBtn.originalContent = generateBtn.innerHTML;
+                generateBtn.innerHTML = `
+                    <svg style="width: 20px; height: 20px; animation: spin 1s linear infinite;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Generating...
+                `;
+                
+                const response = await fetch('/generate-csv', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if (data.csv) {
+                    csvResult.value = data.csv;
+                    resultArea.style.display = 'block';
+                    resultArea.scrollIntoView({ behavior: 'smooth' });
+                    showToast("Conversion successful!");
+                } else if (data.error) {
+                    alert('Error: ' + data.error);
+                }
+            } catch (err) {
+                alert('An error occurred during generation.');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = generateBtn.originalContent;
+            }
+        });
+
+        copyBtn.addEventListener('click', () => {
+            csvResult.select();
+            document.execCommand('copy');
+            showToast("Copied to Clipboard!");
+            
+            copyBtn.style.transform = "scale(0.95)";
+            setTimeout(() => copyBtn.style.transform = "scale(1)", 100);
+        });
+
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
