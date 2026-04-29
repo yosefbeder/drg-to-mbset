@@ -238,6 +238,12 @@
                         </svg>
                         <span>Copy to Clipboard</span>
                     </button>
+                    <button type="button" id="download-zip-btn" style="background: var(--accent-color); border: 1px solid var(--accent-color); color: white; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: none; align-items: center; gap: 0.4rem; margin-left: 0.5rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 14px; height: 14px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        <span>Download Images (ZIP)</span>
+                    </button>
                 </div>
                 <div style="background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem;">
                     <textarea id="csv-result" readonly style="width: 100%; height: 350px; background: transparent; border: none; font-family: 'Monaco', monospace; font-size: 0.85rem; color: #94a3b8; outline: none; resize: vertical; display: block;"></textarea>
@@ -277,6 +283,7 @@
         const resultArea = document.getElementById('result-area');
         const csvResult = document.getElementById('csv-result');
         const copyBtn = document.getElementById('copy-btn');
+        const downloadZipBtn = document.getElementById('download-zip-btn');
 
         // Drag and drop logic
         dropzone.addEventListener('click', () => fileInput.click());
@@ -340,6 +347,13 @@
                 if (data.csv) {
                     csvResult.value = data.csv;
                     resultArea.style.display = 'block';
+                    
+                    if (data.has_images) {
+                        downloadZipBtn.style.display = 'flex';
+                    } else {
+                        downloadZipBtn.style.display = 'none';
+                    }
+                    
                     resultArea.scrollIntoView({ behavior: 'smooth' });
                     showToast("Conversion successful!");
                 } else if (data.error) {
@@ -369,6 +383,51 @@
                 toast.classList.remove('show');
             }, 3000);
         }
+
+        downloadZipBtn.addEventListener('click', async () => {
+            if (!fileInput.files.length && !jsonTextarea.value.trim()) {
+                alert('Please provide JSON data or select a file.');
+                return;
+            }
+
+            const formData = new FormData(form);
+            try {
+                downloadZipBtn.disabled = true;
+                const originalText = downloadZipBtn.innerHTML;
+                downloadZipBtn.innerHTML = 'Preparing Zip...';
+
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'images.zip';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    showToast("Download started!");
+                } else {
+                    const errorText = await response.text();
+                    alert('Error: ' + errorText);
+                }
+            } catch (err) {
+                alert('An error occurred during download.');
+            } finally {
+                downloadZipBtn.disabled = false;
+                downloadZipBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 14px; height: 14px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    <span>Download Images (ZIP)</span>
+                `;
+            }
+        });
     </script>
 </body>
 </html>

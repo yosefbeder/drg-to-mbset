@@ -2,19 +2,26 @@ import json
 import csv
 import io
 import re
-from flask import Flask, request, render_template, Response, jsonify
+import os
+import requests
+import zipfile
+import shutil
+import tempfile
+from flask import Flask, request, render_template, Response, jsonify, send_file
 
 app = Flask(__name__)
 
-def convert_json_to_csv(json_data):
+def convert_json_to_csv(json_data, images_dir=None):
     """
     Converts MCQ JSON data (DRG format) to CSV format (MBSET format).
+    If images_dir is provided, it downloads images and stores them there.
     """
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=[
+    fieldnames = [
         "Cas", "Text", "A", "B", "C", "D", "E", "F", "G", "H", 
-        "Correct", "Year", "subcategoryName", "Tag", "Type", "tagSuggere", "EXP"
-    ])
+        "Correct", "Year", "subcategoryName", "Tag", "Type", "tagSuggere", "EXP", "Image"
+    ]
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
     writer.writeheader()
 
     if isinstance(json_data, str):
@@ -24,6 +31,7 @@ def convert_json_to_csv(json_data):
 
     quizzes = data.get("mcqQuizzes", [])
     
+    image_counter = 1
     for quiz in quizzes:
         quiz_title = quiz.get("title", "")
         # Extract year from title (e.g., "End 2024" -> 2024)
@@ -35,7 +43,31 @@ def convert_json_to_csv(json_data):
             options = q.get("options", [])
             correct_index = q.get("correctOptionIndex", 0)
             explanation = q.get("explanation", "")
+            image_url = q.get("image")
             
+            image_filename = ""
+            if image_url:
+                # Generate a name: img_1, img_2, etc. or use id if available
+                q_id = q.get("id") or q.get("uniqueId")
+                image_name = f"image_{q_id}" if q_id else f"image_{image_counter}"
+                image_filename = f"{image_name}.jpeg"
+                
+                if images_dir:
+                    try:
+                        # Download image
+                        response = requests.get(image_url, stream=True, timeout=10)
+                        if response.status_code == 200:
+                            image_path = os.path.join(images_dir, image_filename)
+                            with open(image_path, 'wb') as f:
+                                shutil.copyfileobj(response.raw, f)
+                        else:
+                            image_filename = "" # Reset if download failed
+                    except Exception as e:
+                        print(f"Error downloading image {image_url}: {e}")
+                        image_filename = ""
+                
+                image_counter += 1
+
             # Map correctOptionIndex to letter (0 -> A, 1 -> B, ...)
             correct_letter = chr(ord('A') + correct_index) if 0 <= correct_index < 26 else ""
             
@@ -56,11 +88,13 @@ def convert_json_to_csv(json_data):
                 "Tag": f"Exams, {quiz_title}",
                 "Type": "QCS",
                 "tagSuggere": "",
-                "EXP": explanation
+                "EXP": explanation,
+                "Image": image_filename if image_filename else ""
             }
             writer.writerow(row)
             
-    return output.getvalue()
+    has_images = image_counter > 1
+    return output.getvalue(), has_images
 
 @app.route('/', methods=['GET'])
 def index():
@@ -77,14 +111,13 @@ def generate_csv():
         if not json_str:
             return jsonify({"error": "No JSON data provided"}), 400
             
-        csv_data = convert_json_to_csv(json_str)
-        return jsonify({"csv": csv_data})
+        csv_data, has_images = convert_json_to_csv(json_str)
+        return jsonify({"csv": csv_data, "has_images": has_images})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/convert', methods=['POST'])
 def convert():
-    # Keep download endpoint just in case, but primary usage will be via generate-csv
     try:
         # Re-handle data from either file or textarea
         if 'file' in request.files and request.files['file'] and request.files['file'].filename != '':
@@ -95,13 +128,34 @@ def convert():
         if not json_str:
             return "No JSON data provided", 400
             
-        csv_data = convert_json_to_csv(json_str)
-        
-        return Response(
-            csv_data,
-            mimetype="text/csv",
-            headers={"Content-disposition": "attachment; filename=mbset_converted.csv"}
-        )
+        # Create a temporary directory for processing
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            images_dir = os.path.join(tmp_dir, "images")
+            os.makedirs(images_dir, exist_ok=True)
+            
+            csv_data, has_images = convert_json_to_csv(json_str, images_dir=images_dir)
+            
+            # Create a zip file containing ONLY the images folder
+            memory_file = io.BytesIO()
+            with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+                
+                # Add images folder
+                for root, dirs, files in os.walk(images_dir):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        # Archive path should be images/filename.jpeg
+                        arcname = os.path.relpath(file_path, tmp_dir)
+                        zf.write(file_path, arcname=arcname)
+            
+            memory_file.seek(0)
+            
+            return send_file(
+                memory_file,
+                mimetype="application/zip",
+                as_attachment=True,
+                download_name="images.zip"
+            )
+            
     except Exception as e:
         return f"Error: {str(e)}", 500
 
