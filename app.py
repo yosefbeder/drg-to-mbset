@@ -11,7 +11,7 @@ from flask import Flask, request, render_template, Response, jsonify, send_file
 
 app = Flask(__name__)
 
-def convert_json_to_csv(json_data, images_dir=None, tag=None, year=None):
+def convert_json_to_csv(json_data, images_dir=None, tag=None, year=None, subcategory_name=None, tag_suggere=None):
     """
     Converts MCQ JSON data (DRG format) to CSV format (MBSET format).
     If images_dir is provided, it downloads images and stores them there.
@@ -82,10 +82,10 @@ def convert_json_to_csv(json_data, images_dir=None, tag=None, year=None):
                 "H": options[7] if len(options) > 7 else "",
                 "Correct": correct_letter,
                 "Year": year,
-                "subcategoryName": "",
+                "subcategoryName": subcategory_name if subcategory_name else "",
                 "Tag": tag,
                 "Type": "QCS",
-                "tagSuggere": "",
+                "tagSuggere": tag_suggere if tag_suggere else "",
                 "EXP": explanation,
                 "Image": image_filename if image_filename else ""
             }
@@ -111,10 +111,13 @@ def generate_csv():
             
         tag = request.form.get('tag', '').strip()
         year = request.form.get('year', '').strip()
+        lecture = request.form.get('lecture', '').strip()
+        subject = request.form.get('subject', '').strip()
+        
         if not tag:
             return jsonify({"error": "Tag field is required"}), 400
 
-        csv_data, has_images = convert_json_to_csv(json_str, tag=tag, year=year)
+        csv_data, has_images = convert_json_to_csv(json_str, tag=tag, year=year, subcategory_name=lecture, tag_suggere=subject)
         return jsonify({"csv": csv_data, "has_images": has_images})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -136,9 +139,19 @@ def convert():
             images_dir = os.path.join(tmp_dir, "images")
             os.makedirs(images_dir, exist_ok=True)
             
-            custom_tag = request.form.get('custom_tag', '').strip()
-            manual_year = request.form.get('manual_year', '').strip()
-            csv_data, has_images = convert_json_to_csv(json_str, images_dir=images_dir, custom_tag=custom_tag, manual_year=manual_year)
+            custom_tag = request.form.get('tag', '').strip() # Changed from custom_tag to match form
+            manual_year = request.form.get('year', '').strip() # Changed from manual_year to match form
+            lecture = request.form.get('lecture', '').strip()
+            subject = request.form.get('subject', '').strip()
+            
+            csv_data, has_images = convert_json_to_csv(
+                json_str, 
+                images_dir=images_dir, 
+                tag=custom_tag, 
+                year=manual_year,
+                subcategory_name=lecture,
+                tag_suggere=subject
+            )
             
             # Create a zip file containing ONLY the images folder
             memory_file = io.BytesIO()
