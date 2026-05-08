@@ -29,7 +29,13 @@ def convert_json_to_csv(json_data, images_dir=None, tag=None, year=None, subcate
     else:
         data = json_data
 
-    quizzes = data.get("mcqQuizzes", [])
+    if isinstance(data, list):
+        # Format is an array of questions directly
+        quizzes = [{"title": "", "questions": data}]
+    elif isinstance(data, dict):
+        quizzes = data.get("mcqQuizzes", [])
+    else:
+        quizzes = []
     
     image_counter = 1
     for quiz in quizzes:
