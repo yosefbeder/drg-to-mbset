@@ -112,7 +112,9 @@
       }
 
       textarea,
-      input[type="text"] {
+      input[type="text"],
+      input[type="number"],
+      select {
         width: 100%;
         background: rgba(0, 0, 0, 0.2);
         border: 1px solid var(--border-color);
@@ -132,12 +134,31 @@
         resize: none;
       }
 
-      input[type="text"] {
+      input[type="text"],
+      input[type="number"],
+      select {
         height: 50px;
+        padding: 0 1.25rem;
+      }
+
+      select {
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e2e8f0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1em;
+      }
+
+      select option {
+        background: var(--bg-color);
+        color: #e2e8f0;
       }
 
       textarea:focus,
-      input[type="text"]:focus {
+      input[type="text"]:focus,
+      input[type="number"]:focus,
+      select:focus {
         border-color: var(--accent-color);
         box-shadow: 0 0 0 4px var(--accent-glow);
       }
@@ -238,21 +259,6 @@
 
       .floating {
         animation: float 6s ease-in-out infinite;
-      }
-
-      /* Tags Input Styles */
-      .tags-input-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 0.75rem;
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        min-height: 50px;
-        cursor: text;
-        transition: all 0.2s ease;
-        position: relative;
       }
 
       .tags-input-wrapper:focus-within {
@@ -424,60 +430,78 @@
         id="convert-form"
       >
         <div class="input-group">
-          <label>Tags (Add multiple)</label>
-          <div class="dropdown-container">
-            <div class="tags-input-wrapper" id="tags-wrapper">
-              <div id="tags-list"></div>
-              <input
-                type="text"
-                id="tag-input-field"
-                placeholder="Search or add tags..."
-                autocomplete="off"
-              />
-              <div class="tags-input-controls">
-                <svg
-                  id="clear-tags"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-                <svg
-                  id="toggle-dropdown"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </div>
-            </div>
-            <div class="tags-dropdown" id="tags-dropdown"></div>
-          </div>
-          <input type="hidden" name="tag" id="tag_hidden" required />
+          <label for="source"
+            >Source <span style="color: #ef4444">*</span></label
+          >
+          <select name="source" id="source" required>
+            <option value="" disabled selected>Select Source</option>
+            <option value="Exams">Exams</option>
+            <option value="Professor">Professor</option>
+            <option value="Department">Department</option>
+            <option value="Other">Other</option>
+          </select>
         </div>
+
+        <div class="input-group" id="exam-type-group" style="display: none">
+          <label for="exam_type">Exam Type</label>
+          <select name="exam_type" id="exam_type">
+            <option value="Formative">Formative</option>
+            <option value="Final">Final</option>
+            <option value="End">End</option>
+          </select>
+        </div>
+
+        <div
+          class="input-group"
+          id="professor-name-group"
+          style="display: none"
+        >
+          <label for="professor_name">Professor Name (Optional)</label>
+          <input
+            type="text"
+            name="professor_name"
+            id="professor_name"
+            placeholder="e.g. Dr. Smith"
+          />
+        </div>
+
+        <div class="input-group" id="custom-source-group" style="display: none">
+          <label for="custom_source"
+            >Custom Source Name <span style="color: #ef4444">*</span></label
+          >
+          <input
+            type="text"
+            name="custom_source"
+            id="custom_source"
+            placeholder="e.g. Workshop"
+          />
+        </div>
+
+        <input type="hidden" name="tag" id="tag_hidden" />
 
         <div class="input-group">
           <label for="year">Year (Optional)</label>
-          <input type="text" name="year" id="year" placeholder="e.g. 2024" />
+          <input type="number" name="year" id="year" placeholder="e.g. 2024" />
         </div>
 
         <div class="input-group">
           <label for="subject">Subject (Optional)</label>
-          <input type="text" name="subject" id="subject" placeholder="e.g. Cardiology" />
+          <input
+            type="text"
+            name="subject"
+            id="subject"
+            placeholder="e.g. Cardiology"
+          />
         </div>
 
         <div class="input-group">
           <label for="lecture">Lecture (Optional)</label>
-          <input type="text" name="lecture" id="lecture" placeholder="e.g. Heart Failure" />
+          <input
+            type="text"
+            name="lecture"
+            id="lecture"
+            placeholder="e.g. Heart Failure"
+          />
         </div>
 
         <div class="input-group">
@@ -668,17 +692,22 @@
     </style>
 
     <script>
-      const tagsDropdown = document.getElementById("tags-dropdown");
-      const clearTagsBtn = document.getElementById("clear-tags");
-      const toggleDropdownBtn = document.getElementById("toggle-dropdown");
-
-      const allSuggestions = ["Exams", "Professor", "Department"];
-      let tags = [];
-
-      const tagsWrapper = document.getElementById("tags-wrapper");
-      const tagsList = document.getElementById("tags-list");
-      const tagInputField = document.getElementById("tag-input-field");
+      const sourceSelect = document.getElementById("source");
+      const examTypeGroup = document.getElementById("exam-type-group");
+      const professorNameGroup = document.getElementById(
+        "professor-name-group",
+      );
+      const customSourceGroup = document.getElementById("custom-source-group");
       const customTagHidden = document.getElementById("tag_hidden");
+
+      sourceSelect.addEventListener("change", () => {
+        examTypeGroup.style.display =
+          sourceSelect.value === "Exams" ? "block" : "none";
+        professorNameGroup.style.display =
+          sourceSelect.value === "Professor" ? "block" : "none";
+        customSourceGroup.style.display =
+          sourceSelect.value === "Other" ? "block" : "none";
+      });
 
       const dropzone = document.getElementById("dropzone");
       const fileInput = document.getElementById("file-input");
@@ -691,113 +720,6 @@
       const csvResult = document.getElementById("csv-result");
       const copyBtn = document.getElementById("copy-btn");
       const downloadZipBtn = document.getElementById("download-zip-btn");
-
-      function updateTags() {
-        tagsList.innerHTML = "";
-        tags.forEach((tag, index) => {
-          const chip = document.createElement("div");
-          chip.className = "tag-chip";
-          chip.innerHTML = `
-                    ${tag}
-                    <span class="remove-tag" onclick="removeTag(${index})">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width: 10px; height: 10px;">
-                            <path d="M18 6L6 18M6 6l12 12"></path>
-                        </svg>
-                    </span>
-                `;
-          tagsList.appendChild(chip);
-        });
-        customTagHidden.value = tags.join(", ");
-        renderDropdown();
-      }
-
-      window.removeTag = (index) => {
-        tags.splice(index, 1);
-        updateTags();
-      };
-
-      function addTag(tag) {
-        tag = tag.trim();
-        if (tag && !tags.includes(tag)) {
-          tags.push(tag);
-          updateTags();
-        }
-        tagInputField.value = "";
-        tagsDropdown.classList.remove("show");
-      }
-
-      function renderDropdown() {
-        const query = tagInputField.value.toLowerCase();
-        const filtered = allSuggestions.filter(
-          (s) => s.toLowerCase().includes(query) && !tags.includes(s),
-        );
-
-        if (filtered.length > 0) {
-          tagsDropdown.innerHTML = filtered
-            .map(
-              (s) => `
-            <div class="dropdown-item" onclick="addTag('${s}')">${s}</div>
-          `,
-            )
-            .join("");
-          if (query || tagsDropdown.classList.contains("force-show")) {
-            tagsDropdown.classList.add("show");
-          }
-        } else {
-          tagsDropdown.classList.remove("show");
-        }
-      }
-
-      tagInputField.addEventListener("input", () => {
-        tagsDropdown.classList.remove("force-show");
-        renderDropdown();
-      });
-
-      tagInputField.addEventListener("focus", () => {
-        if (tagInputField.value) renderDropdown();
-      });
-
-      tagInputField.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          addTag(tagInputField.value);
-        } else if (e.key === ",") {
-          e.preventDefault();
-          addTag(tagInputField.value);
-        } else if (
-          e.key === "Backspace" &&
-          !tagInputField.value &&
-          tags.length > 0
-        ) {
-          tags.pop();
-          updateTags();
-        }
-      });
-
-      clearTagsBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        tags = [];
-        updateTags();
-      });
-
-      toggleDropdownBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        tagsDropdown.classList.toggle("force-show");
-        renderDropdown();
-        if (tagsDropdown.classList.contains("force-show")) {
-          tagsDropdown.classList.add("show");
-        }
-      });
-
-      document.addEventListener("click", (e) => {
-        const dropdownContainer = document.querySelector(".dropdown-container");
-        if (dropdownContainer && !dropdownContainer.contains(e.target)) {
-          tagsDropdown.classList.remove("show");
-          tagsDropdown.classList.remove("force-show");
-        }
-      });
-
-      tagsWrapper.addEventListener("click", () => tagInputField.focus());
 
       // Drag and drop logic
       dropzone.addEventListener("click", () => fileInput.click());
@@ -836,11 +758,39 @@
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const customTag = customTagHidden.value.trim();
-        if (!customTag) {
-          alert("Please add at least one Tag.");
+        const sourceVal = sourceSelect.value;
+        if (!sourceVal) {
+          alert("Please select a Source.");
           return;
         }
+
+        const yearVal = document.getElementById("year").value.trim();
+        let computedTag = sourceVal;
+
+        if (sourceVal === "Exams") {
+          const examTypeVal = document.getElementById("exam_type").value;
+          computedTag = `Exams, ${examTypeVal}`;
+          if (yearVal) {
+            computedTag += ` ${yearVal}`;
+          }
+        } else if (sourceVal === "Professor") {
+          const profNameVal = document
+            .getElementById("professor_name")
+            .value.trim();
+          if (profNameVal) {
+            computedTag = `Professor, ${profNameVal}`;
+          }
+        } else if (sourceVal === "Other") {
+          const customSourceVal = document
+            .getElementById("custom_source")
+            .value.trim();
+          if (!customSourceVal) {
+            alert("Please provide a Custom Source Name.");
+            return;
+          }
+          computedTag = customSourceVal;
+        }
+        customTagHidden.value = computedTag;
 
         if (!fileInput.files.length && !jsonTextarea.value.trim()) {
           alert("Please provide JSON data or select a file.");
@@ -910,6 +860,40 @@
           alert("Please provide JSON data or select a file.");
           return;
         }
+
+        const sourceVal = sourceSelect.value;
+        if (!sourceVal) {
+          alert("Please select a Source.");
+          return;
+        }
+
+        const yearVal = document.getElementById("year").value.trim();
+        let computedTag = sourceVal;
+
+        if (sourceVal === "Exams") {
+          const examTypeVal = document.getElementById("exam_type").value;
+          computedTag = `Exams, ${examTypeVal}`;
+          if (yearVal) {
+            computedTag += ` ${yearVal}`;
+          }
+        } else if (sourceVal === "Professor") {
+          const profNameVal = document
+            .getElementById("professor_name")
+            .value.trim();
+          if (profNameVal) {
+            computedTag = `Professor, ${profNameVal}`;
+          }
+        } else if (sourceVal === "Other") {
+          const customSourceVal = document
+            .getElementById("custom_source")
+            .value.trim();
+          if (!customSourceVal) {
+            alert("Please provide a Custom Source Name.");
+            return;
+          }
+          computedTag = customSourceVal;
+        }
+        customTagHidden.value = computedTag;
 
         const formData = new FormData(form);
         try {
